@@ -15,7 +15,7 @@ class BaseTweetFeed(Feed):
     def item_id(self, tweet):
         return "http://%s%s#%s" % (
             Site.objects.get_current().domain,
-            reverse('zwitschern.views.single', args=[tweet.id,]),
+            reverse('microblogging.views.single', args=[tweet.id,]),
             tweet.id,
         )
     

@@ -82,7 +82,7 @@ class TweetInstance(models.Model):
     sent = models.DateTimeField(_('sent'))
     
     # to migrate to generic foreign key, find out the content_type id of User and do something like:
-    # ALTER TABLE "zwitschern_tweetinstance"
+    # ALTER TABLE "microblogging_tweetinstance"
     #     ADD COLUMN "recipient_type_id" integer NOT NULL
     #     REFERENCES "django_content_type" ("id")
     #     DEFAULT <user content type id>;

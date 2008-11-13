@@ -12,7 +12,7 @@ from microblogging.models import Tweet, TweetInstance
 from microblogging.forms import TweetForm
 
 def personal(request, form_class=TweetForm,
-        template_name="zwitschern/personal.html", success_url=None):
+        template_name="microblogging/personal.html", success_url=None):
     """
     just the tweets the current user is following
     """
@@ -47,7 +47,7 @@ def personal(request, form_class=TweetForm,
     }, context_instance=RequestContext(request))
 personal = login_required(personal)
     
-def public(request, template_name="zwitschern/public.html"):
+def public(request, template_name="microblogging/public.html"):
     """
     all the tweets
     """
@@ -57,7 +57,7 @@ def public(request, template_name="zwitschern/public.html"):
         "tweets": tweets,
     }, context_instance=RequestContext(request))
 
-def single(request, id, template_name="zwitschern/single.html"):
+def single(request, id, template_name="microblogging/single.html"):
     """
     A single tweet.
     """
@@ -77,14 +77,14 @@ def _follow_list(request, username, template_name):
         "other_user": other_user,
     }, context_instance=RequestContext(request))
 
-def followers(request, username, template_name="zwitschern/followers.html"):
+def followers(request, username, template_name="microblogging/followers.html"):
     """
     a list of users following the given user.
     """
     return _follow_list(request, username, template_name)
 
 
-def following(request, username, template_name="zwitschern/following.html"):
+def following(request, username, template_name="microblogging/following.html"):
     """
     a list of users the given user is following.
     """

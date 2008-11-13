@@ -3,7 +3,7 @@ from django import template
 
 register = template.Library()
 
-@register.inclusion_tag('zwitschern/listing.html', takes_context=True)
+@register.inclusion_tag('microblogging/listing.html', takes_context=True)
 def tweet_listing(context, tweets, prefix_sender, are_mine):
     request = context.get('request', None)
     sc = {
