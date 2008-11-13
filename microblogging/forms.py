@@ -1,5 +1,5 @@
 from django import forms
-from zwitschern.models import Tweet, tweet
+from microblogging.models import Tweet, tweet
 
 try:
     from notification import models as notification

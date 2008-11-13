@@ -1,5 +1,5 @@
 from django.contrib import admin
-from zwitschern.models import Tweet, TweetInstance, Following
+from microblogging.models import Tweet, TweetInstance, Following
 
 class TweetAdmin(admin.ModelAdmin):
     list_display = ('id', 'sender', 'text',)

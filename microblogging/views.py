@@ -5,11 +5,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from zwitschern.utils import twitter_account_for_user, twitter_verify_credentials
-from zwitschern.pownce_utils import pownce_account_for_user, pownce_verify_credentials
+from microblogging.utils import twitter_account_for_user, twitter_verify_credentials
+from microblogging.pownce_utils import pownce_account_for_user, pownce_verify_credentials
 
-from zwitschern.models import Tweet, TweetInstance
-from zwitschern.forms import TweetForm
+from microblogging.models import Tweet, TweetInstance
+from microblogging.forms import TweetForm
 
 def personal(request, form_class=TweetForm,
         template_name="zwitschern/personal.html", success_url=None):
@@ -29,7 +29,7 @@ def personal(request, form_class=TweetForm,
             if request.POST.get("pub2pownce", False):
                 pownce_account.post_message('all', text)
             if success_url is None:
-                success_url = reverse('zwitschern.views.personal')
+                success_url = reverse('microblogging.views.personal')
             return HttpResponseRedirect(success_url)
         reply = None
     else:

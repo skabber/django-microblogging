@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from zwitschern.models import Tweet, TweetInstance
+from microblogging.models import Tweet, TweetInstance
 from django.template.defaultfilters import linebreaks, escape, capfirst
 from datetime import datetime
 
