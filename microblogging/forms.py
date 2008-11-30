@@ -17,7 +17,7 @@ class TweetForm(forms.ModelForm):
     
     class Meta:
         model = Tweet
-        exclude = ('sender','sent')
+        exclude = ('sender_type', 'sender_id', 'sent')
         
     def __init__(self, user=None, *args, **kwargs):
         self.user = user
@@ -31,4 +31,4 @@ class TweetForm(forms.ModelForm):
         tweet_instance = super(TweetForm, self).save(commit=False)
         tweet_instance.sender = self.user
         tweet_instance.save()
-        tweet(self.user, text, tweet_instance)
+        #tweet(self.user, text, tweet_instance)

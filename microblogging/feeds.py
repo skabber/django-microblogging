@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
 from microblogging.models import Tweet, TweetInstance
 from django.template.defaultfilters import linebreaks, escape, capfirst
@@ -80,7 +81,7 @@ class TweetFeedUser(BaseTweetFeed):
         return 'Tweets Feed for User %s' % capfirst(user.username)
     
     def feed_updated(self, user):
-        qs = Tweet.objects.filter(sender=user)
+        qs = Tweet.objects.filter(sender_id=user.id, sender_type=ContentType.objects.get_for_model(user))
         # We return an arbitrary date if there are no results, because there
         # must be a feed_updated field as per the Atom specifications, however
         # there is no real data to go by, and an arbitrary date can be static.
@@ -97,7 +98,7 @@ class TweetFeedUser(BaseTweetFeed):
         return ({'href': complete_url},)
     
     def items(self, user):
-        return Tweet.objects.filter(sender=user).order_by("-sent")[:ITEMS_PER_FEED]
+        return Tweet.objects.filter(sender_id=user.id, sender_type=ContentType.objects.get_for_model(user)).order_by("-sent")[:ITEMS_PER_FEED]
 
 
 class TweetFeedUserWithFriends(BaseTweetFeed):

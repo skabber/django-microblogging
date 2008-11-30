@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.db import models
+from django.db.models.signals import post_save
 from django.utils.html import escape
 from django.utils.translation import ugettext_lazy as _
 
@@ -8,8 +9,6 @@ from django.contrib.auth.models import User
 
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
-
-from tribes.models import Tribe
 
 try:
     from notification import models as notification
@@ -23,21 +22,15 @@ except ImportError:
 
 import re
 user_ref_re = re.compile("@(\w+)")
-tribe_ref_re = re.compile("(?<!&)#(\w+)")
 reply_re = re.compile("^@(\w+)")
 
 def make_user_link(text):
     username = text.group(1)
     return """@<a href="/profiles/%s/">%s</a>""" % (username, username)
 
-def make_tribe_link(text):
-    tribe_slug = text.group(1)
-    return """#<a href="/tribes/%s/">%s</a>""" % (tribe_slug, tribe_slug)
-
 def format_tweet(text):
     text = escape(text)
     text = user_ref_re.sub(make_user_link, text)
-    text = tribe_ref_re.sub(make_tribe_link, text)
     return text
     
 class Tweet(models.Model):
@@ -46,7 +39,9 @@ class Tweet(models.Model):
     """
     
     text = models.CharField(_('text'), max_length=140)
-    sender = models.ForeignKey(User, related_name="sent_tweets", verbose_name=_('sender'))
+    sender_type = models.ForeignKey(ContentType)
+    sender_id = models.PositiveIntegerField()
+    sender = generic.GenericForeignKey('sender_type', 'sender_id')
     sent = models.DateTimeField(_('sent'), default=datetime.now)
     
     def __unicode__(self):
@@ -78,7 +73,9 @@ class TweetInstance(models.Model):
     """
     
     text = models.CharField(_('text'), max_length=140)
-    sender = models.ForeignKey(User, related_name="sent_tweet_instances", verbose_name=_('sender'))
+    sender_type = models.ForeignKey(ContentType, related_name='tweet_instances')
+    sender_id = models.PositiveIntegerField()
+    sender = generic.GenericForeignKey('sender_type', 'sender_id')
     sent = models.DateTimeField(_('sent'))
     
     # to migrate to generic foreign key, find out the content_type id of User and do something like:
@@ -101,20 +98,23 @@ class TweetInstance(models.Model):
         return format_tweet(self.text)
 
 
-def tweet(user, text, tweet=None):
-    if tweet is None:
-        tweet = Tweet.objects.create(text=text, sender=user)
+def tweet(sender, instance, created, **kwargs):
+    #if tweet is None:
+    #    tweet = Tweet.objects.create(text=text, sender=user)
     recipients = set() # keep track of who's received it
+    user = instance.sender
     
     # add the sender's followers
-    for follower in (following.follower for following in user.followers.all()):
+    user_content_type = ContentType.objects.get_for_model(user)
+    followings = Following.objects.filter(followed_content_type=user_content_type, followed_object_id=user.id)
+    for follower in (following.follower_content_object for following in followings):
         recipients.add(follower)
     
     # add sender
     recipients.add(user)
     
     # if starts with @user send it to them too even if not following
-    match = reply_re.match(text)
+    match = reply_re.match(instance.text)
     if match:
         try:
             reply_recipient = User.objects.get(username=match.group(1))
@@ -125,42 +125,41 @@ def tweet(user, text, tweet=None):
             if notification:
                 notification.send([reply_recipient], "tweet_reply_received", {'tweet': tweet,})
     
-    # if contains #tribe sent it to that tribe too (the tribe itself, not the members)
-    for tribe in tribe_ref_re.findall(text):
-        try:
-            recipients.add(Tribe.objects.get(slug=tribe))
-        except Tribe.DoesNotExist:
-            pass # oh well
-    
     # now send to all the recipients
     for recipient in recipients:
-        tweet_instance = TweetInstance.objects.create(text=text, sender=user, recipient=recipient, sent=tweet.sent)
+        tweet_instance = TweetInstance.objects.create(text=instance.text, sender=user, recipient=recipient, sent=instance.sent)
 
 
 class FollowingManager(models.Manager):
     
     def is_following(self, follower, followed):
         try:
-            following = self.get(follower=follower, followed=followed)
+            following = self.get(follower_object_id=follower.id, followed_object_id=followed.id)
             return True
         except Following.DoesNotExist:
             return False
     
     def follow(self, follower, followed):
         if follower != followed and not self.is_following(follower, followed):
-            Following(follower=follower, followed=followed).save()
+            Following(follower_content_object=follower, followed_content_object=followed).save()
     
     def unfollow(self, follower, followed):
         try:
-            following = self.get(follower=follower, followed=followed)
+            following = self.get(follower_object_id=follower.id, followed_object_id=followed.id)
             following.delete()
         except Following.DoesNotExist:
             pass
 
 
 class Following(models.Model):
+    follower_content_type = models.ForeignKey(ContentType, related_name="followed", verbose_name=_('follower'))
+    follower_object_id = models.PositiveIntegerField()
+    follower_content_object = generic.GenericForeignKey('follower_content_type', 'follower_object_id')
     
-    follower = models.ForeignKey(User, related_name="followed", verbose_name=_('follower'))
-    followed = models.ForeignKey(User, related_name="followers", verbose_name=_('followed'))
+    followed_content_type = models.ForeignKey(ContentType, related_name="followers", verbose_name=_('followed'))
+    followed_object_id = models.PositiveIntegerField()
+    followed_content_object = generic.GenericForeignKey('followed_content_type', 'followed_object_id')
     
     objects = FollowingManager()
+
+post_save.connect(tweet, sender=Tweet)

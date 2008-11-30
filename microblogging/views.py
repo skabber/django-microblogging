@@ -3,12 +3,13 @@ from django.http import HttpResponseRedirect
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
 
 from microblogging.utils import twitter_account_for_user, twitter_verify_credentials
 from microblogging.pownce_utils import pownce_account_for_user, pownce_verify_credentials
 
-from microblogging.models import Tweet, TweetInstance
+from microblogging.models import Tweet, TweetInstance, Following
 from microblogging.forms import TweetForm
 
 def personal(request, form_class=TweetForm,
@@ -67,25 +68,29 @@ def single(request, id, template_name="microblogging/single.html"):
     }, context_instance=RequestContext(request))
 
 
-def _follow_list(request, username, template_name):
+def _follow_list(request, other_user, follow_list, template_name):
     # the only difference between followers/following views is template
     # this function captures the similarity
     
-    other_user = get_object_or_404(User, username=username)
-    
     return render_to_response(template_name, {
         "other_user": other_user,
+        "follow_list": follow_list,
     }, context_instance=RequestContext(request))
 
 def followers(request, username, template_name="microblogging/followers.html"):
     """
     a list of users following the given user.
     """
-    return _follow_list(request, username, template_name)
-
+    other_user = get_object_or_404(User, username=username)
+    users_followers = Following.objects.filter(followed_object_id=other_user.id, followed_content_type=ContentType.objects.get_for_model(other_user))
+    follow_list = [u.follower_content_object for u in users_followers]
+    return _follow_list(request, other_user, follow_list, template_name)
 
 def following(request, username, template_name="microblogging/following.html"):
     """
     a list of users the given user is following.
     """
-    return _follow_list(request, username, template_name)
+    other_user = get_object_or_404(User, username=username)
+    following = Following.objects.filter(follower_object_id=other_user.id, follower_content_type=ContentType.objects.get_for_model(other_user))
+    follow_list = [u.followed_content_object for u in following]
+    return _follow_list(request, other_user, follow_list, template_name)
