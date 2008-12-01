@@ -135,7 +135,7 @@ def tweet(sender, instance, created, **kwargs):
                 notification.send([reply_recipient], "tweet_reply_received", {'tweet': tweet,})
     
     # if contains #tribe sent it to that tribe too (the tribe itself, not the members)
-    for tribe in tribe_ref_re.findall(text):
+    for tribe in tribe_ref_re.findall(instance.text):
         try:
             recipients.add(Tribe.objects.get(slug=tribe))
         except Tribe.DoesNotExist:
