@@ -10,6 +10,8 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
+from tribes.models import Tribe
+
 try:
     from notification import models as notification
 except ImportError:
@@ -22,15 +24,21 @@ except ImportError:
 
 import re
 user_ref_re = re.compile("@(\w+)")
+tribe_ref_re = re.compile("(?<!&)#(\w+)")
 reply_re = re.compile("^@(\w+)")
 
 def make_user_link(text):
     username = text.group(1)
     return """@<a href="/profiles/%s/">%s</a>""" % (username, username)
 
+def make_tribe_link(text):
+    tribe_slug = text.group(1)
+    return """#<a href="/tribes/%s/">%s</a>""" % (tribe_slug, tribe_slug)
+
 def format_tweet(text):
     text = escape(text)
     text = user_ref_re.sub(make_user_link, text)
+    text = tribe_ref_re.sub(make_tribe_link, text)
     return text
     
 class Tweet(models.Model):
@@ -124,6 +132,13 @@ def tweet(sender, instance, created, **kwargs):
         else:
             if notification:
                 notification.send([reply_recipient], "tweet_reply_received", {'tweet': tweet,})
+    
+    # if contains #tribe sent it to that tribe too (the tribe itself, not the members)
+    for tribe in tribe_ref_re.findall(text):
+        try:
+            recipients.add(Tribe.objects.get(slug=tribe))
+        except Tribe.DoesNotExist:
+            pass # oh well
     
     # now send to all the recipients
     for recipient in recipients:
