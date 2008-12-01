@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.db import models
 from django.db.models.signals import post_save
+from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.translation import ugettext_lazy as _
 
@@ -33,7 +34,7 @@ def make_user_link(text):
 
 def make_tribe_link(text):
     tribe_slug = text.group(1)
-    return """#<a href="/tribes/%s/">%s</a>""" % (tribe_slug, tribe_slug)
+    return """#<a href="%s">%s</a>""" % (reverse("tribe_detail", args=(tribe_slug,)), tribe_slug)
 
 def format_tweet(text):
     text = escape(text)
