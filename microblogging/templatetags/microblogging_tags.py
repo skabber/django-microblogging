@@ -1,6 +1,6 @@
 
 from django import template
-from ..microblogging.models import Tweet
+from microblogging.models import Tweet
 
 register = template.Library()
 
