@@ -11,8 +11,6 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
-from tribes.models import Tribe
-
 try:
     from notification import models as notification
 except ImportError:
@@ -24,23 +22,7 @@ except ImportError:
 # @@@ need to make @ and # handling more abstract
 
 import re
-user_ref_re = re.compile("@(\w+)")
-tribe_ref_re = re.compile("(?<!&)#(\w+)")
 reply_re = re.compile("^@(\w+)")
-
-def make_user_link(text):
-    username = text.group(1)
-    return """@<a href="/profiles/%s/">%s</a>""" % (username, username)
-
-def make_tribe_link(text):
-    tribe_slug = text.group(1)
-    return """#<a href="%s">%s</a>""" % (reverse("tribe_detail", args=(tribe_slug,)), tribe_slug)
-
-def format_tweet(text):
-    text = escape(text)
-    text = user_ref_re.sub(make_user_link, text)
-    text = tribe_ref_re.sub(make_tribe_link, text)
-    return text
     
 class Tweet(models.Model):
     """
@@ -55,9 +37,6 @@ class Tweet(models.Model):
     
     def __unicode__(self):
         return self.text
-    
-    def html(self):
-        return format_tweet(self.text)
     
     def get_absolute_url(self):
         return ("single_tweet", [self.id])
@@ -102,9 +81,6 @@ class TweetInstance(models.Model):
     recipient = generic.GenericForeignKey('recipient_type', 'recipient_id')
     
     objects = TweetInstanceManager()
-    
-    def html(self):
-        return format_tweet(self.text)
 
 
 def tweet(sender, instance, created, **kwargs):
@@ -133,13 +109,6 @@ def tweet(sender, instance, created, **kwargs):
         else:
             if notification:
                 notification.send([reply_recipient], "tweet_reply_received", {'tweet': tweet,})
-    
-    # if contains #tribe sent it to that tribe too (the tribe itself, not the members)
-    for tribe in tribe_ref_re.findall(instance.text):
-        try:
-            recipients.add(Tribe.objects.get(slug=tribe))
-        except Tribe.DoesNotExist:
-            pass # oh well
     
     # now send to all the recipients
     for recipient in recipients:
