@@ -16,6 +16,8 @@ setup(
     keywords='microblogging,django',
     author='James Tauber',
     author_email='jtauber@jtauber.com',
+    maintainer='Jay Graves',
+    maintainer_email='jay@skabber.com',
     url='http://code.google.com/p/django-microblogging/',
     license='MIT',
     packages=find_packages(),
