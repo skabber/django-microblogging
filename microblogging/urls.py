@@ -7,4 +7,6 @@ urlpatterns = patterns('',
 
     url(r'^followers/(\w+)/$', 'microblogging.views.followers', name='tweet_followers'),
     url(r'^following/(\w+)/$', 'microblogging.views.following', name='tweet_following'),
+    
+    url(r'^toggle_follow/(\w+)/$', 'microblogging.views.toggle_follow', name='toggle_follow'),
 )

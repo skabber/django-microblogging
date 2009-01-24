@@ -4,12 +4,18 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
 from django.core.urlresolvers import reverse
-
+from django.utils.translation import ugettext_lazy as _
 from microblogging.utils import twitter_account_for_user, twitter_verify_credentials
-
 from microblogging.models import Tweet, TweetInstance, Following
 from microblogging.forms import TweetForm
+
+if "notification" in settings.INSTALLED_APPS:
+    from notification import models as notification
+else:
+    notification = None
+
 
 def personal(request, form_class=TweetForm,
         template_name="microblogging/personal.html", success_url=None):
@@ -89,3 +95,23 @@ def following(request, username, template_name="microblogging/following.html"):
     following = Following.objects.filter(follower_object_id=other_user.id, follower_content_type=ContentType.objects.get_for_model(other_user))
     follow_list = [u.followed_content_object for u in following]
     return _follow_list(request, other_user, follow_list, template_name)
+
+def toggle_follow(request, username):
+    """
+    Either follow or unfollow a user.
+    """
+    other_user = get_object_or_404(User, username=username)
+    if request.user == other_user:
+        is_me = True
+    else:
+        is_me = False
+    if request.user.is_authenticated() and request.method == "POST" and not is_me:
+        if request.POST["action"] == "follow":
+            Following.objects.follow(request.user, other_user)
+            request.user.message_set.create(message=_("You are now following %(other_user)s") % {'other_user': other_user})
+            if notification:
+                notification.send([other_user], "tweet_follow", {"user": request.user})
+        elif request.POST["action"] == "unfollow":
+            Following.objects.unfollow(request.user, other_user)
+            request.user.message_set.create(message=_("You have stopped following %(other_user)s") % {'other_user': other_user})
+    return HttpResponseRedirect(reverse("profile_detail", args=[other_user]))
