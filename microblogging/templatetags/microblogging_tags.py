@@ -1,15 +1,22 @@
+import re
+
 from django import template
 from django.template.defaultfilters import stringfilter
 from django.core.urlresolvers import reverse
-from microblogging.models import Tweet
-import re
+
+from django.contrib.contenttypes.models import ContentType
+
+from microblogging.models import Tweet, Following
+
 
 register = template.Library()
 user_ref_re = re.compile("@(\w+)")
 
+
 def make_user_link(text):
     username = text.group(1)
     return """@<a href="%s">%s</a>""" % (reverse("profile_detail", args=[username]), username)
+
 
 @register.inclusion_tag('microblogging/listing.html', takes_context=True)
 def tweet_listing(context, tweets, prefix_sender, are_mine):
@@ -23,12 +30,32 @@ def tweet_listing(context, tweets, prefix_sender, are_mine):
         sc['request'] = request
     return sc
 
+
 @register.inclusion_tag('microblogging/listing.html', takes_context=True)
 def sent_tweet_listing(context, user, prefix_sender, are_mine):
     tweets = Tweet.objects.filter(sender_id=user.pk)
     return tweet_listing(context, tweets, prefix_sender, are_mine)
 
+
 @register.filter
 @stringfilter
 def fmt_user(value):
     return user_ref_re.sub(make_user_link, value)
+
+
+@register.simple_tag
+def follower_count(user):
+    followers = Following.objects.filter(
+        followed_object_id = user.id,
+        followed_content_type = ContentType.objects.get_for_model(user)
+    )
+    return followers.count()
+
+
+@register.simple_tag
+def following_count(user):
+    following = Following.objects.filter(
+        follower_object_id = user.id,
+        follower_content_type = ContentType.objects.get_for_model(user)
+    )
+    return following.count()
