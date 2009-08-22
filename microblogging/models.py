@@ -108,7 +108,7 @@ def tweet(sender, instance, created, **kwargs):
             pass # oh well
         else:
             if notification:
-                notification.send([reply_recipient], "tweet_reply_received", {'tweet': tweet,})
+                notification.send([reply_recipient], "tweet_reply_received", {'tweet': instance,})
     
     # now send to all the recipients
     for recipient in recipients:
