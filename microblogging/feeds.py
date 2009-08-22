@@ -6,8 +6,8 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
 from microblogging.models import Tweet, TweetInstance
-from microblogging.templatetags.microblogging_tags import fmt_user
-from django.template.defaultfilters import linebreaks, escape, capfirst
+from microblogging.templatetags.microblogging_tags import render_tweet_text
+from django.template.defaultfilters import linebreaks, capfirst
 from datetime import datetime
 
 ITEMS_PER_FEED = getattr(settings, 'PINAX_ITEMS_PER_FEED', 20)
@@ -31,7 +31,7 @@ class BaseTweetFeed(Feed):
         return tweet.sent
     
     def item_content(self, tweet):
-        return {"type" : "html", }, linebreaks(escape(fmt_user(tweet.text)))
+        return {"type" : "html", }, linebreaks(render_tweet_text(tweet))
     
     def item_links(self, tweet):
         return [{"href" : self.item_id(tweet)}]

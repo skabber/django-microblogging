@@ -1,8 +1,10 @@
 import re
 
 from django import template
-from django.template.defaultfilters import stringfilter
 from django.core.urlresolvers import reverse
+from django.template.defaultfilters import stringfilter
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 
 from django.contrib.contenttypes.models import ContentType
 
@@ -16,6 +18,13 @@ user_ref_re = re.compile("@(\w+)")
 def make_user_link(text):
     username = text.group(1)
     return """@<a href="%s">%s</a>""" % (reverse("profile_detail", args=[username]), username)
+
+
+@register.simple_tag
+def render_tweet_text(tweet):
+    text = escape(tweet.text)
+    text = user_ref_re.sub(make_user_link, text)
+    return mark_safe(text)
 
 
 @register.inclusion_tag('microblogging/listing.html', takes_context=True)
@@ -35,12 +44,6 @@ def tweet_listing(context, tweets, prefix_sender, are_mine):
 def sent_tweet_listing(context, user, prefix_sender, are_mine):
     tweets = Tweet.objects.filter(sender_id=user.pk)
     return tweet_listing(context, tweets, prefix_sender, are_mine)
-
-
-@register.filter
-@stringfilter
-def fmt_user(value):
-    return user_ref_re.sub(make_user_link, value)
 
 
 @register.simple_tag
